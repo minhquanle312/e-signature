@@ -18,6 +18,9 @@ const fileSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
+    signatureToken: {
+      type: String,
+    },
   },
   {
     toJSON: { virtuals: true },

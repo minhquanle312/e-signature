@@ -6,6 +6,13 @@ const router = express.Router()
 
 router.use(authController.protect)
 
+router.patch(
+  '/generateToken/:id',
+  fileController.downloadFile,
+  fileController.generateToken,
+  fileController.updateFile
+)
+
 router.post(
   '/',
   fileController.uploadSingle,
