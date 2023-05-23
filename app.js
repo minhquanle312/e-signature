@@ -11,11 +11,9 @@ const cookieParser = require('cookie-parser')
 
 const AppError = require('./utils/appError')
 const globalErrorHandler = require('./controllers/errorController')
-// const tourRouter = require('./routes/tourRoutes')
 const userRouter = require('./routes/userRoutes')
 const fileRouter = require('./routes/fileRoutes')
-// const chatRouter = require('./routes/chatRoutes')
-// const messageRouter = require('./routes/messageRoutes')
+const pkiRoutes = require('./routes/pkiRoutes')
 const { ALLOW_ORIGIN } = require('./configs/corsConfig')
 
 const app = express()
@@ -76,6 +74,7 @@ app.use((req, res, next) => {
 
 app.use('/api/v1/users', userRouter)
 app.use('/api/v1/uploads', fileRouter)
+app.use('/api/v1/pki', pkiRoutes)
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404))

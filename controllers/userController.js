@@ -130,10 +130,16 @@ exports.createUser = (req, res) => {
   })
 }
 
-exports.getUser = factory.getOne(User, {
-  path: 'files',
-  select: '-__v',
-})
+exports.getUser = factory.getOne(User, [
+  {
+    path: 'files',
+    select: '-__v',
+  },
+  {
+    path: 'verifies',
+    select: '-__v',
+  },
+])
 // exports.getUser = factory.getOne(User)
 exports.getAllUsers = factory.getAll(User)
 

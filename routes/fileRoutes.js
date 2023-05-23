@@ -6,12 +6,14 @@ const router = express.Router()
 
 router.use(authController.protect)
 
-router.patch(
-  '/generateToken/:id',
-  fileController.downloadFile,
-  fileController.generateToken,
-  fileController.updateFile
-)
+// router.patch(
+//   '/generateToken/:id',
+//   fileController.downloadFile,
+//   fileController.generateToken,
+//   fileController.updateFile
+// )
+
+router.patch('/:id', fileController.updateFile)
 
 router.post(
   '/',
@@ -19,5 +21,7 @@ router.post(
   fileController.uploadFile,
   fileController.createFile
 )
+
+router.delete('/', fileController.deleteFile)
 
 module.exports = router

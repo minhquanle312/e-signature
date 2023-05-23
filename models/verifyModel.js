@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const fileSchema = new mongoose.Schema(
+const verifySchema = new mongoose.Schema(
   {
     name: {
       type: String,
@@ -14,16 +14,16 @@ const fileSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    userUpload: {
+    user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
     },
-    pkiId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Token',
-    },
-    signatureToken: {
+    publicKey: String,
+    signature: String,
+    verify: {
       type: String,
+      enum: ['waiting', 'signature valid', 'signature invalid'],
+      default: 'waiting',
     },
   },
   {
@@ -33,6 +33,6 @@ const fileSchema = new mongoose.Schema(
   }
 )
 
-const File = mongoose.model('File', fileSchema)
+const File = mongoose.model('Verify', verifySchema)
 
 module.exports = File

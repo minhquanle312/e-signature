@@ -1,5 +1,4 @@
 const multer = require('multer')
-const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
 const { initializeApp } = require('firebase/app')
 const {
@@ -8,11 +7,15 @@ const {
   getDownloadURL,
   getBytes,
   uploadBytesResumable,
+  deleteObject,
 } = require('firebase/storage')
 const File = require('./../models/fileModel')
 const firebaseConfig = require('../configs/firebase')
 const catchAsync = require('../utils/catchAsync')
 const factory = require('./handlerFactory')
+const slugify = require('slugify')
+const AppError = require('../utils/appError')
+const crypto = require('crypto')
 
 initializeApp(firebaseConfig)
 
@@ -25,35 +28,39 @@ const upload = multer({ storage: multer.memoryStorage() })
 exports.uploadSingle = upload.single('filename')
 
 exports.downloadFile = catchAsync(async (req, res, next) => {
-  if (!req.body.url) return next()
+  let { privateKey } = req.body
+  if (!req.params.id) return next()
+  const file = await File.findById(req.params.id)
 
-  const httpsReference = ref(storage, req.body.url)
-  try {
-    const arrayBuffer = await getBytes(httpsReference)
-    // console.log(arrayBuffer)
-    // const sign = crypto.createSign('RSA-SHA256')
-    // sign.write(arrayBuffer)
-    // sign.end()
-
-    // const signature = sign.sign(process.env.JWT_SECRET, 'base64')
-
-    //   const hashedToken = crypto
-    // .createHash('sha256')
-    // .update(req.params.token)
-    // .digest('hex')
-
-    const token = jwt.sign(
-      { arrayBuffer, id: req.user.id },
-      process.env.JWT_SECRET
-      // { algorithm: 'RS256' }
-    )
-
-    req.token = token
-  } catch (error) {
-    req.token = null
+  if (!file) {
+    return next(new Error('Not found file with id', 404))
   }
 
-  next()
+  const httpsReference = ref(storage, file.url)
+  try {
+    const arrayBuffer = await getBytes(httpsReference)
+
+    // req.body.data = arrayBuffer
+    let data = Buffer.from(arrayBuffer, 'base64')
+    privateKey = crypto.createPrivateKey({
+      key: Buffer.from(privateKey, 'base64'),
+      type: 'pkcs8',
+      format: 'der',
+    })
+
+    let sign = crypto.createSign('sha256')
+    sign.update(data)
+    sign.end()
+
+    let signature = sign.sign(privateKey).toString('base64')
+
+    res.status(200).json({ data, signature })
+  } catch (error) {
+    console.log(error)
+    // req.body.data = null
+  }
+
+  // next()
 })
 
 exports.generateToken = catchAsync(async (req, res, next) => {
@@ -64,12 +71,16 @@ exports.generateToken = catchAsync(async (req, res, next) => {
 
 exports.uploadFile = catchAsync(async (req, res, next) => {
   const dateTime = new Date().getTime()
+  const fileNameSimplify = slugify(req.file.originalname)
+  const fileNameWithoutExtension = fileNameSimplify.slice(
+    0,
+    fileNameSimplify.lastIndexOf('.')
+  )
+  const extension = fileNameSimplify.split('.').pop()
+  const fileName = `${fileNameWithoutExtension}_${dateTime}.${extension}`
 
   try {
-    const storageRef = ref(
-      storage,
-      `files/${req.file.originalname + '_' + dateTime}`
-    )
+    const storageRef = ref(storage, `files/${fileName}`)
 
     // Create file metadata including the content type
     const metadata = {
@@ -87,18 +98,31 @@ exports.uploadFile = catchAsync(async (req, res, next) => {
     // Grab the public url
     const downloadURL = await getDownloadURL(snapshot.ref)
 
-    req.body.name = req.file.originalname
+    req.body.name = fileName
     req.body.type = req.file.mimetype
     req.body.url = downloadURL
-    req.body.userUpload = req.user.id
+    req.body.user = req.user.id
+    next()
   } catch (error) {
     req.body.name = null
     req.body.type = null
     req.body.url = null
-    req.body.userUpload = null
+    req.body.user = null
+    return next(new AppError('Something went wrong', 400))
   }
+})
 
-  next()
+exports.deleteFile = catchAsync(async (req, res, next) => {
+  const { fileName } = req.body || {}
+
+  const desertRef = ref(storage, `files/${fileName}`)
+
+  try {
+    await deleteObject(desertRef)
+    res.send({ success: true })
+  } catch (error) {
+    return next(new AppError('Something went wrong', 4000))
+  }
 })
 
 exports.createFile = factory.createOne(File)
