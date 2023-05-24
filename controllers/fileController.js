@@ -101,13 +101,13 @@ exports.uploadFile = catchAsync(async (req, res, next) => {
     req.body.name = fileName
     req.body.type = req.file.mimetype
     req.body.url = downloadURL
-    req.body.user = req.user.id
+    req.body.userUpload = req.user.id
     next()
   } catch (error) {
     req.body.name = null
     req.body.type = null
     req.body.url = null
-    req.body.user = null
+    req.body.userUpload = null
     return next(new AppError('Something went wrong', 400))
   }
 })
